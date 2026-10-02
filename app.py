@@ -28,7 +28,7 @@ box-shadow:0 6px 18px rgba(255,46,147,.15)}.kpi b{font-size:2rem;color:#d6197b}.
 h2,h3{color:#c2185b}
 .box{background:#fff;border-left:6px solid #ff2e93;padding:1rem 1.3rem;border-radius:14px;margin:.6rem 0}
 </style>""", unsafe_allow_html=True)
-st.markdown('<div class="hero"><h1>🌸 Classification ABC Multi-Attributs</h1><p>Réalisé par : Belhaddad Oumaima et Kaka Fatima Zahra</p></div>', unsafe_allow_html=True)
+st.markdown('<div class="hero"><h1>🌸 Classification ABC Multi-Attributs</h1><p>Réalisé par oumaima belhaddad et kaka fatima zahra</p></div>', unsafe_allow_html=True)
 
 def kpi(col, v, l): col.markdown(f'<div class="kpi"><b>{v}</b><span>{l}</span></div>', unsafe_allow_html=True)
 def style(fig): fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.7)", font_color="#7b1048"); return fig
@@ -50,7 +50,7 @@ E = encode(df); C = criteria(E); R, V, dp, dn, cc = topsis(C, W)
 cl, rk = abc(cc, sa / 100, sb / 100)
 out = df.copy(); out["TOPSIS_score"] = cc.round(5); out["Rang"] = rk; out["Classe"] = cl
 
-tabs = st.tabs(["📋 1 Données", "🔢 2 Transformation", "🧩 3 Critères", "🎯 4-5 TOPSIS", "🅰️ 6-7 ABC", "🤖 8-9 Machine Learning", "📘 Méthodologie"])
+tabs = st.tabs(["📋 1 Données", "🔢 2 Transformation", "🧩 3 Critères", "🎯 4-5 TOPSIS", "🅰️ 6-7 ABC", "🤖 8-9 Machine Learning", "🌫️ 10 Flou", "🆕 Nouvel article", "📘 Méthodologie"])
 
 with tabs[0]:
     c = st.columns(4); kpi(c[0], len(df), "Articles"); kpi(c[1], df.shape[1], "Variables"); kpi(c[2], 4, "Quantitatives"); kpi(c[3], 4, "Qualitatives")
@@ -114,6 +114,9 @@ def run_ml(X, y, seed):
         cms[n] = confusion_matrix(yte, p, labels=list("ABC"))
     return pd.DataFrame(rows, columns=["Modèle", "Accuracy CV-10", "Accuracy test (33 %)", "Précision", "Rappel", "F1", "Rappel classe A", "F1 classe A"]), cms
 
+def pick_best(t):
+    return t.sort_values(["F1", "Accuracy CV-10", "Rappel classe A"], ascending=False).Modèle.iloc[0]
+
 with tabs[5]:
     st.markdown('<div class="box"><b>Protocole :</b> entrées = 8 attributs (scores normalisés), cible = Classe ABC issue de TOPSIS. Évaluation : validation croisée 10 plis + découpage stratifié 66/33. Le rappel de la classe A est suivi séparément : c\'est la classe la plus critique (Sun et al., 2007).<br><i>Remarque :</i> les classes étant une fonction déterministe des attributs, une accuracy élevée est attendue ; c\'est une mesure de la capacité des modèles à reproduire la logique MCDM.</div>', unsafe_allow_html=True)
     seed = st.number_input("Graine aléatoire", 0, 999, 42)
@@ -123,11 +126,45 @@ with tabs[5]:
         t, cms = st.session_state.ml
         st.dataframe(t.style.format({c: "{:.3f}" for c in t.columns[1:]}).background_gradient(cmap="RdPu", subset=t.columns[1:]), width='stretch', hide_index=True)
         st.plotly_chart(style(px.bar(t.melt("Modèle", ["Accuracy CV-10", "Accuracy test (33 %)", "F1"]), x="Modèle", y="value", color="variable", barmode="group", color_discrete_sequence=PINK)), width='stretch')
-        best = t.sort_values("F1", ascending=False).Modèle.iloc[0]; st.success(f"🏆 Meilleur modèle (F1) : {best}")
+        best = pick_best(t); st.success(f"🏆 Meilleur modèle (F1) : {best}")
         pick = st.selectbox("Matrice de confusion", list(cms), index=list(cms).index(best))
         st.plotly_chart(style(px.imshow(cms[pick], x=list("ABC"), y=list("ABC"), text_auto=True, color_continuous_scale="RdPu", labels=dict(x="Prédit", y="Réel"))), width='stretch')
 
+
 with tabs[6]:
+    st.markdown('<div class="box"><b>Classer un nouvel article.</b> Deux méthodes en parallèle : (1) <b>TOPSIS</b> avec les mêmes normes, poids et solutions idéale/anti-idéale que la base de référence, puis rang du score parmi les 700 articles ; (2) le <b>modèle ML retenu</b> (meilleur F1, départage par accuracy CV puis rappel de A), ré-entraîné sur toute la base.</div>', unsafe_allow_html=True)
+    a, b, c3, d4 = st.columns(4)
+    nr = {"Risk": a.selectbox("Risque", list(T1["Risk"]), 1), "Demand fluctuation": b.selectbox("Fluctuation demande", list(T1["Demand fluctuation"]), 1),
+          "Consignment stock": c3.selectbox("Stock en consignation", list(T1["Consignment stock"]), 0), "Unit size": d4.selectbox("Taille unité", list(T1["Unit size"]), 1)}
+    a, b, c3, d4 = st.columns(4)
+    nr["Average stock"] = a.number_input("Stock moyen", 0.0, 10000.0, float(df["Average stock"].median()))
+    nr["Daily usage"] = b.number_input("Utilisation quotidienne", 0.0, 1000.0, float(df["Daily usage"].median()))
+    nr["Unit cost"] = c3.number_input("Coût unitaire", 0.0, 100000.0, float(df["Unit cost"].median()))
+    nr["Lead time"] = d4.number_input("Délai de livraison (jours)", 0, 1000, int(df["Lead time"].median()))
+    row = pd.DataFrame([nr])[list(df.columns)]
+    # --- encodage avec les maxima de la base de référence
+    en = pd.DataFrame([{**{k: T1[k][nr[k]] for k in T1}, **{q: nr[q] / df[q].max() for q in QUANT}}])[list(E.columns)]
+    Cn = criteria(en); wv = pd.Series(W)[C.columns]; wv = wv / wv.sum()
+    nrm = np.sqrt((C ** 2).sum()); Vn = Cn / nrm * wv
+    ap, an = V.max(), V.min()
+    dpn = float(np.sqrt(((Vn - ap) ** 2).sum(axis=1)).iloc[0]); dnn = float(np.sqrt(((Vn - an) ** 2).sum(axis=1)).iloc[0])
+    ccn = dnn / (dpn + dnn); rkn = int((cc > ccn).sum()) + 1; frac = rkn / (len(cc) + 1)
+    cls_t = "A" if frac <= sa / 100 else "B" if frac <= (sa + sb) / 100 else "C"
+    k = st.columns(3); kpi(k[0], f"{ccn:.4f}", "Score TOPSIS"); kpi(k[1], f"{rkn} / {len(cc)+1}", "Rang"); kpi(k[2], cls_t, "Classe (TOPSIS)")
+    if "ml" not in st.session_state:
+        with st.spinner("Évaluation des modèles…"): st.session_state.ml = run_ml(E, out.Classe, 42)
+    t, _ = st.session_state.ml; best = pick_best(t)
+    mdl = MODELS[best].fit(E, out.Classe); pred = mdl.predict(en)[0]; pr = pd.Series(mdl.predict_proba(en)[0], index=mdl.classes_)
+    st.success(f"🏆 Modèle retenu : **{best}** (F1 = {t.set_index('Modèle').loc[best,'F1']:.3f}, accuracy CV-10 = {t.set_index('Modèle').loc[best,'Accuracy CV-10']:.3f}) → classe prédite : **{pred}**")
+    c1, c2 = st.columns(2)
+    c1.plotly_chart(style(px.bar(x=pr.index, y=pr.values, color=pr.index, color_discrete_map=CLS, labels=dict(x="Classe", y="Probabilité"), title="Probabilités du modèle retenu")), width='stretch')
+    allp = {n: MODELS[n].fit(E, out.Classe).predict(en)[0] for n in MODELS}
+    c2.write("Prédiction de tous les modèles"); c2.dataframe(pd.DataFrame({"Modèle": allp.keys(), "Classe prédite": allp.values()}), hide_index=True, width='stretch')
+    if pred != cls_t: st.warning(f"Désaccord TOPSIS ({cls_t}) / ML ({pred}) : article proche d'une frontière de classe. La classe TOPSIS fait référence ; le ML l'approxime.")
+    else: st.info(f"TOPSIS et ML concordent : classe **{pred}**.")
+    st.caption("Remarque : TOPSIS est relatif à la base. Ajouter un article ne recalcule pas les normes ni les idéaux ; pour l'intégrer, ajoutez-le au CSV.")
+
+with tabs[8]:
     st.markdown(f"""### 📘 Méthode de pondération
 **1. Poids additifs (Table 2)** : agrégation des attributs en critères — Criticité = 0.78·Risque + 0.22·Fluctuation ; Demande = 0.71·Usage + 0.29·Stock ; Approvisionnement = 0.75·Délai + 0.25·Consignation.
 
@@ -139,6 +176,6 @@ with tabs[6]:
 
 CR recalculé = **{cr*100:.2f} %** (< 10 %, jugements cohérents).
 
-**3. Pipeline** : CSV → scores normalisés → 5 critères → pondération AHP → TOPSIS → classement → ABC (20/30/50) → ML  .
+**3. Pipeline** : CSV → scores normalisés → 5 critères → pondération AHP → TOPSIS → classement → ABC (20/30/50) → ML
 
 **Référence** : Kartal, Oztekin, Gunasekaran & Cebi (2016), *Computers & Industrial Engineering*.""")
