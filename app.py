@@ -50,7 +50,7 @@ E = encode(df); C = criteria(E); R, V, dp, dn, cc = topsis(C, W)
 cl, rk = abc(cc, sa / 100, sb / 100)
 out = df.copy(); out["TOPSIS_score"] = cc.round(5); out["Rang"] = rk; out["Classe"] = cl
 
-tabs = st.tabs(["📋 1 Données", "🔢 2 Transformation", "🧩 3 Critères", "🎯 4-5 TOPSIS", "🅰️ 6-7 ABC", "🤖 8-9 Machine Learning", "🌫️ 10 Flou", "🆕 Nouvel article", "📘 Méthodologie"])
+tabs = st.tabs(["📋 1 Données", "🔢 2 Transformation", "🧩 3 Critères", "🎯 4-5 TOPSIS", "🅰️ 6-7 ABC", "🤖 8-9 Machine Learning", "🆕 Nouvel article", "📘 Méthodologie"])
 
 with tabs[0]:
     c = st.columns(4); kpi(c[0], len(df), "Articles"); kpi(c[1], df.shape[1], "Variables"); kpi(c[2], 4, "Quantitatives"); kpi(c[3], 4, "Qualitatives")
