@@ -139,6 +139,4 @@ with tabs[6]:
 
 CR recalculé = **{cr*100:.2f} %** (< 10 %, jugements cohérents).
 
-**3. Pipeline** : CSV → scores normalisés → 5 critères → pondération AHP → TOPSIS → classement → ABC (20/30/50) → ML → TOPSIS flou.
 
-**Référence** : Kartal, Oztekin, Gunasekaran & Cebi (2016), *Computers & Industrial Engineering*.""")
