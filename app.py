@@ -164,7 +164,7 @@ with tabs[6]:
     else: st.info(f"TOPSIS et ML concordent : classe **{pred}**.")
     st.caption("Remarque : TOPSIS est relatif à la base. Ajouter un article ne recalcule pas les normes ni les idéaux ; pour l'intégrer, ajoutez-le au CSV.")
 
-with tabs[8]:
+with tabs[7]:
     st.markdown(f"""### 📘 Méthode de pondération
 **1. Poids additifs (Table 2)** : agrégation des attributs en critères — Criticité = 0.78·Risque + 0.22·Fluctuation ; Demande = 0.71·Usage + 0.29·Stock ; Approvisionnement = 0.75·Délai + 0.25·Consignation.
 
